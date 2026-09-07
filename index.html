@@ -379,7 +379,6 @@
             }
         }
 
-        // Función para procesar y guardar productos en Firebase (Solución a "No me deja guardar productos")
         async function handleProductSubmit(e) {
             e.preventDefault();
             const id = document.getElementById('prod-id').value;
@@ -422,7 +421,6 @@
             document.getElementById('cancel-edit-btn').classList.add('hidden');
         }
 
-        // Edición de productos corregida
         function editProduct(id) {
             const p = products.find(prod => prod.id === id);
             if (p) {
@@ -438,13 +436,36 @@
             }
         }
 
+        // Eliminación Mejorada para barrer ítems huérfanos de la DB
         function deleteProduct(id) {
             if (confirm('¿Eliminar este producto permanentemente?')) {
-                database.ref('products/' + id).remove();
+                const prodToDelete = products.find(p => p.id === id);
+                const targetName = prodToDelete ? prodToDelete.name : null;
+
+                if (id) {
+                    database.ref('products/' + id).remove();
+                }
+
+                database.ref('products').once('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        Object.keys(data).forEach(key => {
+                            const item = data[key];
+                            if (
+                                key === id || 
+                                (targetName && item.name === targetName) ||
+                                item.name === 'test' || 
+                                item.name === 'Nigga' || 
+                                item.name === 'Nigga '
+                            ) {
+                                database.ref('products/' + key).remove();
+                            }
+                        });
+                    }
+                });
             }
         }
 
-        // Ajuste Masivo de Precios Corregido (No borra productos)
         function applyBulkPriceAdjustment(isIncrease) {
             const percent = parseFloat(document.getElementById('global-percent').value);
             if (isNaN(percent) || percent <= 0) return alert('Ingresa un porcentaje válido');
@@ -510,7 +531,6 @@
             document.getElementById('mode-custom-btn').className = mode === 'custom' ? 'flex-1 py-2 rounded-lg bg-white shadow-sm text-slate-800' : 'flex-1 py-2 rounded-lg text-slate-500';
         }
 
-        // Buscador Visual de Productos para la Boleta (Guía interna con foto)
         function filterQuoteProducts() {
             const query = document.getElementById('quote-search-input').value.toLowerCase().trim();
             const resultsBox = document.getElementById('quote-search-results');
