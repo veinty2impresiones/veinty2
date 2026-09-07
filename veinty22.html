@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VEINTY2 - Gestión de Precios e Impresión 3D</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+        }
+        :root {
+            --v2-blue: #0d47a1;
+        }
+        .bg-v2 { background-color: var(--v2-blue); }
+        .text-v2 { color: var(--v2-blue); }
+
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 8mm;
+            }
+            header, .no-print, button, input, select, #image-modal {
+                display: none !important;
+            }
+            body {
+                background: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .container {
+                max-width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            #invoice-container {
+                border: none !important;
+                box-shadow: none !important;
+                padding: 8mm !important;
+                width: 100% !important;
+                max-height: 280mm !important;
+                box-sizing: border-box !important;
+                page-break-inside: avoid !important;
+                page-break-after: avoid !important;
+            }
+        }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header / Navbar -->
+    <header class="bg-v2 text-white shadow-xl p-4 flex flex-wrap justify-between items-center no-print">
+        <div class="flex items-center space-x-4">
+            <div class="bg-white p-2 rounded-xl shadow-md flex items-center gap-3">
+                <svg class="h-8 w-auto" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="200" height="200" fill="#F8FAFC"/>
+                    <path d="M40 25H68V175H40V25Z" fill="#0D47A1"/>
+                    <path d="M68 125C68 85 95 45 155 45V80C115 80 98 100 98 125H68Z" fill="#0D47A1"/>
+                    <path d="M98 175C98 145 120 120 155 120V148C135 148 125 158 125 175H98Z" fill="#0D47A1"/>
+                </svg>
+                <div class="flex flex-col">
+                    <span class="text-blue-900 font-black text-xl tracking-wider leading-none">VEINTY2</span>
+                    <span class="text-[9px] font-bold text-blue-700 tracking-widest leading-tight uppercase mt-0.5">Servicio de Impresión 3D</span>
+                </div>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-wide">Gestión de Precios & Cotizaciones</h1>
+                <p class="text-xs text-blue-200">Panel de Control Local</p>
+            </div>
+        </div>
+        
+        <div class="flex items-center space-x-2 mt-2 sm:mt-0">
+            <button onclick="changeTab('catalog')" id="btn-catalog" class="px-4 py-2 rounded-lg font-bold bg-white text-v2 shadow transition text-sm flex items-center gap-2">
+                📦 Catálogo
+            </button>
+            <button onclick="changeTab('quote')" id="btn-quote" class="px-4 py-2 rounded-lg font-bold text-white hover:bg-blue-800 transition text-sm flex items-center gap-2">
+                📄 Presupuestador
+            </button>
+        </div>
+    </header>
+
+    <div class="container mx-auto p-4 sm:p-6 flex-1 max-w-7xl">
+
+        <!-- SECCIÓN 1: CATÁLOGO DE PRODUCTOS -->
+        <div id="tab-catalog" class="space-y-6">
+            
+            <!-- Controles Globales y Buscador -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                <div class="lg:col-span-5 bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-center">
+                    <label class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                        🔍 Buscar Producto
+                    </label>
+                    <input type="text" id="search-input" oninput="renderProducts()" placeholder="Buscar por nombre o características..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+
+                <div class="lg:col-span-7 bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap gap-4 items-center justify-between">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-800">📈 Ajuste Masivo de Precios</h2>
+                        <p class="text-xs text-slate-500">Aumenta o reduce precios globalmente.</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <input type="number" id="global-percent" placeholder="%" class="w-20 p-2 border border-slate-300 rounded-lg text-center font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        <button onclick="applyGlobalPercentage(true)" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg font-bold text-xs transition shadow-sm">+ Aumentar %</button>
+                        <button onclick="applyGlobalPercentage(false)" class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-2 rounded-lg font-bold text-xs transition shadow-sm">- Descontar %</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formulario Agregar / Editar Producto -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h3 id="form-title" class="font-bold text-slate-800 mb-4 text-sm uppercase tracking-wider flex items-center gap-2">
+                    <span class="text-v2 font-black text-lg">+</span> Agregar Nuevo Producto 3D
+                </h3>
+                <form id="add-product-form" onsubmit="handleProductSubmit(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3">
+                    <input type="hidden" id="editing-id" value="">
+                    <input type="text" id="p-name" placeholder="Nombre (ej. Kuromi)" class="p-2.5 border border-slate-300 rounded-lg text-sm outline-none" required>
+                    <input type="text" id="p-specs" placeholder="Características" class="p-2.5 border border-slate-300 rounded-lg text-sm outline-none" required>
+                    <input type="number" id="p-cost" placeholder="Costo ($)" step="0.01" class="p-2.5 border border-slate-300 rounded-lg text-sm outline-none" required>
+                    <input type="number" id="p-price" placeholder="Precio Venta ($)" step="0.01" class="p-2.5 border border-slate-300 rounded-lg text-sm outline-none" required>
+                    
+                    <!-- Campo Imagen del Producto -->
+                    <div>
+                        <input type="file" id="p-image-file" accept="image/*" class="text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-v2 hover:file:bg-blue-100">
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button type="submit" id="btn-save-product" class="bg-v2 hover:bg-blue-900 text-white font-bold p-2.5 rounded-lg transition text-sm flex-1">Guardar</button>
+                        <button type="button" id="btn-cancel-edit" onclick="resetForm()" class="hidden bg-slate-400 text-white font-bold px-3 py-2.5 rounded-lg text-sm">X</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Tabla de Productos -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-900 text-white text-xs uppercase font-bold tracking-wider">
+                            <tr>
+                                <th class="p-4">Foto</th>
+                                <th class="p-4">Producto</th>
+                                <th class="p-4">Características</th>
+                                <th class="p-4">Costo ($)</th>
+                                <th class="p-4">Precio Venta ($)</th>
+                                <th class="p-4">Margen (%)</th>
+                                <th class="p-4 text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="product-list-body" class="divide-y divide-slate-100 text-sm">
+                            <!-- Se llena dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 2: PRESUPUESTADOR -->
+        <div id="tab-quote" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- Panel Lateral de Configuración -->
+                <div class="lg:col-span-4 space-y-5 no-print">
+                    
+                    <!-- Personalización del Documento -->
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+                        <h3 class="font-bold text-slate-800 text-xs uppercase tracking-wider">🎨 Personalización de la Boleta</h3>
+                        
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Cargar Logo Emisor (Tu Marca)</label>
+                            <input type="file" id="q-issuer-logo-input" accept="image/*" class="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-v2 hover:file:bg-blue-100">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Nombre / Empresa Cliente</label>
+                            <input type="text" id="q-client-name" oninput="renderQuote()" placeholder="Ej. Rubio Muebles" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Cargar Logo del Cliente (Opcional)</label>
+                            <input type="file" id="q-client-logo-input" accept="image/*" class="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200">
+                            <button type="button" onclick="removeClientLogo()" id="btn-remove-client-logo" class="hidden text-[11px] text-rose-500 font-bold mt-1 hover:underline">✕ Quitar Logo Cliente</button>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Validez de la oferta (días)</label>
+                            <input type="number" id="q-validity" oninput="renderQuote()" value="15" min="1" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm outline-none">
+                        </div>
+                    </div>
+
+                    <!-- Selección de Items -->
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                        <h3 class="font-bold text-slate-800 text-xs uppercase tracking-wider">🛒 Agregar Productos</h3>
+                        
+                        <div class="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-xl">
+                            <button type="button" id="type-catalog-btn" onclick="setQuoteMode('catalog')" class="py-1.5 px-3 text-xs rounded-lg font-bold bg-white text-slate-800 shadow-sm transition">Del Catálogo</button>
+                            <button type="button" id="type-custom-btn" onclick="setQuoteMode('custom')" class="py-1.5 px-3 text-xs rounded-lg font-bold text-slate-600 transition">Especial / Personalizado</button>
+                        </div>
+
+                        <div id="quote-catalog-fields" class="space-y-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Seleccionar Item</label>
+                                <select id="q-select-product" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm bg-slate-50 outline-none"></select>
+                            </div>
+                        </div>
+
+                        <div id="quote-custom-fields" class="hidden space-y-3 bg-blue-50/50 p-3 rounded-xl border border-blue-100">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Descripción del Trabajo</label>
+                                <input type="text" id="q-custom-name" placeholder="Ej. Letras RUBIO" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Precio Venta ($)</label>
+                                <input type="number" id="q-custom-price" step="0.01" placeholder="0.00" class="w-full p-2 border border-slate-300 rounded-lg text-sm font-bold text-v2 bg-white">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Cantidad</label>
+                                <input type="number" id="q-qty" value="1" min="1" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm text-center font-bold">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Descuento (%)</label>
+                                <input type="number" id="q-discount" value="0" min="0" max="100" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm text-center font-bold">
+                            </div>
+                        </div>
+
+                        <button onclick="addItemToQuote()" class="w-full bg-v2 text-white py-2.5 rounded-lg font-bold hover:bg-blue-900 shadow-sm transition text-sm">+ Agregar a la Cotización</button>
+                    </div>
+
+                    <button onclick="window.print()" class="w-full bg-emerald-600 text-white font-bold px-6 py-3 rounded-xl shadow-md hover:bg-emerald-700 transition flex items-center justify-center gap-2">
+                        🖨️ Imprimir / Guardar PDF (1 Página)
+                    </button>
+                </div>
+
+                <!-- DOCUMENTO PROFESIONAL DE PRESUPUESTO -->
+                <div class="lg:col-span-8">
+                    <div class="bg-white p-8 rounded-2xl shadow-xl border border-slate-200 flex flex-col justify-between min-h-[720px]" id="invoice-container">
+                        
+                        <div>
+                            <div class="flex justify-between items-start border-b-2 border-slate-900 pb-5 mb-6">
+                                <div class="flex items-center gap-4">
+                                    <div id="issuer-logo-container">
+                                        <svg class="h-16 w-auto" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <rect width="200" height="200" fill="#FFFFFF"/>
+                                            <path d="M40 25H68V175H40V25Z" fill="#0D47A1"/>
+                                            <path d="M68 125C68 85 95 45 155 45V80C115 80 98 100 98 125H68Z" fill="#0D47A1"/>
+                                            <path d="M98 175C98 145 120 120 155 120V148C135 148 125 158 125 175H98Z" fill="#0D47A1"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h2 class="text-3xl font-extrabold text-blue-900 tracking-wider leading-none">VEINTY2</h2>
+                                        <p class="text-[11px] font-bold text-blue-800 tracking-widest uppercase mt-1">Servicio de Impresión 3D</p>
+                                        <p class="text-xs italic text-slate-500 mt-2 font-medium">“Una idea tuya, ahora en tus manos” — VEINTY2</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-right">
+                                    <span class="inline-block bg-slate-100 text-slate-900 text-xs font-black px-3 py-1 rounded-full uppercase tracking-widest mb-2">Presupuesto</span>
+                                    <p class="text-xs text-slate-600">Fecha: <span id="quote-date" class="font-bold text-slate-900"></span></p>
+                                    <p class="text-xs text-slate-600 mt-0.5">Validez: <span id="quote-validity-display" class="font-bold text-slate-900">15 días</span></p>
+                                </div>
+                            </div>
+
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 flex justify-between items-center">
+                                <div>
+                                    <p class="font-bold text-slate-400 uppercase tracking-wider text-[10px] mb-1">CLIENTE / DIRIGIDO A</p>
+                                    <p id="quote-client-display" class="font-extrabold text-slate-800 text-base">Cliente General</p>
+                                </div>
+                                <div id="client-logo-container" class="hidden">
+                                    <!-- Foto del comprador si la carga -->
+                                </div>
+                            </div>
+
+                            <div class="overflow-x-auto mb-6">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="border-b-2 border-slate-200 text-slate-600 text-[11px] uppercase font-bold tracking-wider">
+                                            <th class="py-2.5 px-2">Descripción</th>
+                                            <th class="py-2.5 px-2 text-center">Cant.</th>
+                                            <th class="py-2.5 px-2 text-right">Precio Unit.</th>
+                                            <th id="th-discount" class="py-2.5 px-2 text-right">Desc.</th>
+                                            <th class="py-2.5 px-2 text-right">Subtotal</th>
+                                            <th class="py-2.5 px-2 text-center no-print"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="quote-items-body" class="divide-y divide-slate-100 text-xs">
+                                        <!-- Filas dinámicas -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-end border-t-2 border-slate-900 pt-3 mb-6">
+                                <div class="text-right">
+                                    <span class="font-bold text-slate-700 text-lg mr-4">TOTAL:</span>
+                                    <span id="quote-total" class="font-black text-2xl text-v2">$0.00</span>
+                                </div>
+                            </div>
+
+                            <div class="border-t border-slate-200 pt-4 flex flex-col sm:flex-row justify-between items-end gap-4 text-xs">
+                                <div class="text-left space-y-1 text-slate-600">
+                                    <p class="font-extrabold text-slate-900 text-xs uppercase tracking-wider mb-1">VEINTY2 3D</p>
+                                    <div class="flex items-center gap-1 text-[11px]">
+                                        <span>📱 WhatsApp:</span>
+                                        <span class="font-bold text-slate-800">3416758362</span>
+                                    </div>
+                                    <div class="flex items-center gap-1 text-[11px]">
+                                        <span>📸 Instagram:</span>
+                                        <span class="font-bold text-slate-800">@veinty2_3d</span>
+                                    </div>
+                                    <div class="flex items-center gap-1 text-[11px]">
+                                        <span>✉️ Email:</span>
+                                        <span class="font-bold text-slate-800">veinty2.impresiones@gmail.com</span>
+                                    </div>
+                                </div>
+
+                                <div class="text-right space-y-1">
+                                    <p class="text-[9px] text-slate-400 font-bold tracking-wider uppercase">
+                                        ⚠️ DOCUMENTO NO VÁLIDO COMO FACTURA • COMPROBANTE SIN VALOR FISCAL
+                                    </p>
+                                    <p class="text-xs text-slate-600 font-semibold">
+                                        ¡Muchas gracias por confiar en VEINTY2!
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MODAL PARA AGRANDAR IMAGEN -->
+    <div id="image-modal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm cursor-pointer" onclick="closeImageModal()">
+        <div class="relative max-w-3xl max-h-[90vh] bg-white p-2 rounded-2xl shadow-2xl overflow-hidden flex flex-col items-center" onclick="event.stopPropagation()">
+            <button onclick="closeImageModal()" class="absolute top-3 right-3 bg-slate-900 text-white w-8 h-8 rounded-full font-bold flex items-center justify-center hover:bg-rose-600 transition shadow">✕</button>
+            <h4 id="modal-title" class="font-bold text-slate-800 my-2 text-center text-sm"></h4>
+            <img id="modal-img" src="" class="max-w-full max-h-[80vh] object-contain rounded-xl">
+        </div>
+    </div>
+
+    <script>
+        let products = JSON.parse(localStorage.getItem('v2_products')) || [
+            { id: 101, name: "kuromi", specs: "Figura Resina / PLA", cost: 10000, price: 23000, image: "" }
+        ];
+
+        let quoteItems = [
+            { id: 1, name: "letras RUBIO", qty: 5, unitPrice: 23000, discount: 0, subtotal: 115000 }
+        ];
+        
+        let quoteMode = 'catalog';
+        let currentProductImageBase64 = "";
+        let customClientLogoBase64 = "";
+
+        document.getElementById('quote-date').innerText = new Date().toLocaleDateString('es-AR');
+
+        // Escuchar carga de logo propio emisor
+        document.getElementById('q-issuer-logo-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    document.getElementById('issuer-logo-container').innerHTML = `<img src="${event.target.result}" class="h-16 w-auto object-contain rounded">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Escuchar carga de logo del cliente
+        document.getElementById('q-client-logo-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    customClientLogoBase64 = event.target.result;
+                    const clientContainer = document.getElementById('client-logo-container');
+                    clientContainer.innerHTML = `<img src="${customClientLogoBase64}" class="h-12 w-auto max-w-[120px] object-contain rounded border border-slate-200">`;
+                    clientContainer.classList.remove('hidden');
+                    document.getElementById('btn-remove-client-logo').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function removeClientLogo() {
+            customClientLogoBase64 = "";
+            document.getElementById('q-client-logo-input').value = "";
+            document.getElementById('client-logo-container').classList.add('hidden');
+            document.getElementById('client-logo-container').innerHTML = "";
+            document.getElementById('btn-remove-client-logo').classList.add('hidden');
+        }
+
+        // Escuchar carga de foto del producto
+        document.getElementById('p-image-file').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    currentProductImageBase64 = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function saveProductsToStorage() {
+            localStorage.setItem('v2_products', JSON.stringify(products));
+        }
+
+        function openImageModal(imgSrc, title) {
+            if (!imgSrc) return;
+            document.getElementById('modal-img').src = imgSrc;
+            document.getElementById('modal-title').innerText = title || 'Vista de Producto';
+            document.getElementById('image-modal').classList.remove('hidden');
+        }
+
+        function closeImageModal() {
+            document.getElementById('image-modal').classList.add('hidden');
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeImageModal();
+        });
+
+        function renderProducts() {
+            const tbody = document.getElementById('product-list-body');
+            const select = document.getElementById('q-select-product');
+            const searchVal = document.getElementById('search-input') ? document.getElementById('search-input').value.toLowerCase().trim() : '';
+            
+            tbody.innerHTML = '';
+            select.innerHTML = '';
+
+            const filteredProducts = products.filter(p => 
+                p.name.toLowerCase().includes(searchVal) || 
+                p.specs.toLowerCase().includes(searchVal)
+            );
+
+            if (filteredProducts.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400 italic">No hay productos.</td></tr>`;
+            } else {
+                filteredProducts.forEach((p) => {
+                    const originalIndex = products.findIndex(item => item.id === p.id);
+                    const margin = p.price > 0 ? (((p.price - p.cost) / p.price) * 100).toFixed(1) : 0;
+                    
+                    const imgTag = p.image 
+                        ? `<img src="${p.image}" onclick="openImageModal('${p.image}', '${p.name}')" class="w-12 h-12 object-cover rounded-xl border border-slate-200 cursor-pointer hover:scale-105 hover:shadow-md transition" title="Haz clic para agrandar">`
+                        : `<div class="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 text-xs font-bold">3D</div>`;
+                    
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="p-3">${imgTag}</td>
+                            <td class="p-3 font-bold text-slate-800">${p.name}</td>
+                            <td class="p-3 text-xs text-slate-500">${p.specs}</td>
+                            <td class="p-3">$<input type="number" step="0.01" value="${p.cost}" onchange="updateCost(${originalIndex}, this.value)" class="w-20 border border-slate-300 rounded px-2 py-1 text-xs"></td>
+                            <td class="p-3">$<input type="number" step="0.01" value="${p.price}" onchange="updatePrice(${originalIndex}, this.value)" class="w-20 border border-slate-300 rounded px-2 py-1 font-bold text-v2 text-xs"></td>
+                            <td class="p-3 text-xs"><span class="${margin < 30 ? 'text-rose-600 bg-rose-50' : 'text-emerald-600 bg-emerald-50'} font-bold px-2 py-1 rounded-full">${margin}%</span></td>
+                            <td class="p-3 text-center space-x-1">
+                                <button onclick="startEditProduct(${originalIndex})" class="text-blue-600 hover:text-blue-800 font-bold text-xs px-2 py-1">Editar</button>
+                                <button onclick="deleteProduct(${originalIndex})" class="text-rose-500 hover:text-rose-700 font-bold text-xs px-2 py-1">Eliminar</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+
+            products.forEach(p => {
+                select.innerHTML += `<option value="${p.id}">${p.name} ($${p.price})</option>`;
+            });
+
+            saveProductsToStorage();
+        }
+
+        function handleProductSubmit(e) {
+            e.preventDefault();
+            const editingId = document.getElementById('editing-id').value;
+            const name = document.getElementById('p-name').value.trim();
+            const specs = document.getElementById('p-specs').value.trim();
+            const cost = parseFloat(document.getElementById('p-cost').value) || 0;
+            const price = parseFloat(document.getElementById('p-price').value) || 0;
+
+            if (editingId !== "") {
+                const index = products.findIndex(p => p.id === parseInt(editingId));
+                if (index !== -1) {
+                    products[index] = { 
+                        ...products[index], 
+                        name, specs, cost, price,
+                        image: currentProductImageBase64 || products[index].image
+                    };
+                }
+            } else {
+                products.push({ 
+                    id: Date.now() + Math.floor(Math.random() * 1000), 
+                    name, specs, cost, price,
+                    image: currentProductImageBase64
+                });
+            }
+
+            resetForm();
+            renderProducts();
+        }
+
+        function startEditProduct(index) {
+            const p = products[index];
+            document.getElementById('editing-id').value = p.id;
+            document.getElementById('p-name').value = p.name;
+            document.getElementById('p-specs').value = p.specs;
+            document.getElementById('p-cost').value = p.cost;
+            document.getElementById('p-price').value = p.price;
+            currentProductImageBase64 = p.image || "";
+
+            document.getElementById('form-title').innerHTML = `<span class="text-v2 font-black text-lg">✏️</span> Editar Producto`;
+            document.getElementById('btn-save-product').innerText = "Guardar";
+            document.getElementById('btn-cancel-edit').classList.remove('hidden');
+        }
+
+        function resetForm() {
+            document.getElementById('editing-id').value = "";
+            document.getElementById('add-product-form').reset();
+            currentProductImageBase64 = "";
+            document.getElementById('form-title').innerHTML = `<span class="text-v2 font-black text-lg">+</span> Agregar Nuevo Producto 3D`;
+            document.getElementById('btn-save-product').innerText = "Guardar";
+            document.getElementById('btn-cancel-edit').classList.add('hidden');
+        }
+
+        function updateCost(index, val) { products[index].cost = parseFloat(val) || 0; saveProductsToStorage(); renderProducts(); }
+        function updatePrice(index, val) { products[index].price = parseFloat(val) || 0; saveProductsToStorage(); renderProducts(); }
+        function deleteProduct(index) { if (confirm("¿Eliminar este producto?")) { products.splice(index, 1); renderProducts(); } }
+
+        function applyGlobalPercentage(isIncrease) {
+            const percent = parseFloat(document.getElementById('global-percent').value);
+            if (!percent) return;
+            const factor = isIncrease ? (1 + percent / 100) : (1 - percent / 100);
+            products.forEach(p => p.price = parseFloat((p.price * factor).toFixed(2)));
+            renderProducts();
+        }
+
+        function setQuoteMode(mode) {
+            quoteMode = mode;
+            document.getElementById('type-catalog-btn').className = mode === 'catalog' ? "py-1.5 px-3 text-xs rounded-lg font-bold bg-white text-slate-800 shadow-sm transition" : "py-1.5 px-3 text-xs rounded-lg font-bold text-slate-600 transition";
+            document.getElementById('type-custom-btn').className = mode === 'custom' ? "py-1.5 px-3 text-xs rounded-lg font-bold bg-white text-slate-800 shadow-sm transition" : "py-1.5 px-3 text-xs rounded-lg font-bold text-slate-600 transition";
+            document.getElementById('quote-catalog-fields').classList.toggle('hidden', mode !== 'catalog');
+            document.getElementById('quote-custom-fields').classList.toggle('hidden', mode !== 'custom');
+        }
+
+        function addItemToQuote() {
+            const qty = parseInt(document.getElementById('q-qty').value) || 1;
+            const discount = parseFloat(document.getElementById('q-discount').value) || 0;
+            let name = "", unitPrice = 0;
+
+            if (quoteMode === 'catalog') {
+                const productId = parseInt(document.getElementById('q-select-product').value);
+                const product = products.find(p => p.id === productId);
+                if (!product) return;
+                name = product.name;
+                unitPrice = product.price;
+            } else {
+                name = document.getElementById('q-custom-name').value.trim();
+                unitPrice = parseFloat(document.getElementById('q-custom-price').value) || 0;
+                if (!name || unitPrice <= 0) return alert("Ingresa un nombre y precio válido.");
+            }
+
+            const subtotal = (unitPrice * qty) * (1 - discount / 100);
+            quoteItems.push({ id: Date.now(), name, qty, unitPrice, discount, subtotal });
+
+            if (quoteMode === 'custom') {
+                document.getElementById('q-custom-name').value = '';
+                document.getElementById('q-custom-price').value = '';
+            }
+
+            renderQuote();
+        }
+
+        function removeQuoteItem(index) {
+            quoteItems.splice(index, 1);
+            renderQuote();
+        }
+
+        function renderQuote() {
+            const tbody = document.getElementById('quote-items-body');
+            const thDiscount = document.getElementById('th-discount');
+            const clientInput = document.getElementById('q-client-name').value.trim();
+            const validityInput = document.getElementById('q-validity').value;
+
+            document.getElementById('quote-client-display').innerText = clientInput || "rubio muebles";
+            document.getElementById('quote-validity-display').innerText = `${validityInput || 15} días`;
+
+            tbody.innerHTML = '';
+            let total = 0;
+            const hasDiscount = quoteItems.some(item => item.discount > 0);
+            thDiscount.classList.toggle('hidden', !hasDiscount);
+
+            quoteItems.forEach((item, index) => {
+                total += item.subtotal;
+                let discountCell = hasDiscount ? `<td class="py-2.5 px-2 text-right text-slate-500">${item.discount > 0 ? item.discount + '%' : '-'}</td>` : '';
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="py-2.5 px-2 font-semibold text-slate-800">${item.name}</td>
+                        <td class="py-2.5 px-2 text-center text-slate-600 font-bold">${item.qty}</td>
+                        <td class="py-2.5 px-2 text-right text-slate-600">$${item.unitPrice.toFixed(2)}</td>
+                        ${discountCell}
+                        <td class="py-2.5 px-2 text-right font-extrabold text-slate-900">$${item.subtotal.toFixed(2)}</td>
+                        <td class="py-2.5 px-2 text-center no-print">
+                            <button onclick="removeQuoteItem(${index})" class="text-rose-500 font-bold text-xs">✕</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('quote-total').innerText = `$${total.toFixed(2)}`;
+        }
+
+        function changeTab(tab) {
+            document.getElementById('tab-catalog').classList.toggle('hidden', tab !== 'catalog');
+            document.getElementById('tab-quote').classList.toggle('hidden', tab !== 'quote');
+            document.getElementById('btn-catalog').className = tab === 'catalog' ? 'px-4 py-2 rounded-lg font-bold bg-white text-v2 shadow transition text-sm flex items-center gap-2' : 'px-4 py-2 rounded-lg font-bold text-white hover:bg-blue-800 transition text-sm flex items-center gap-2';
+            document.getElementById('btn-quote').className = tab === 'quote' ? 'px-4 py-2 rounded-lg font-bold bg-white text-v2 shadow transition text-sm flex items-center gap-2' : 'px-4 py-2 rounded-lg font-bold text-white hover:bg-blue-800 transition text-sm flex items-center gap-2';
+        }
+
+        renderProducts();
+        renderQuote();
+    </script>
+</body>
+</html>
