@@ -13,13 +13,13 @@
         @media print {
             body { background: white !important; padding: 0 !important; }
             .no-print { display: none !important; }
-            .print-container { shadow: none !important; border: none !important; padding: 0 !important; }
+            .print-container { box-shadow: none !important; border: none !important; padding: 0 !important; width: 100% !important; max-width: 100% !important; }
         }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans min-h-screen">
 
-    <!-- Firebase -->
+    <!-- Inicialización de Firebase -->
     <script>
         const firebaseConfig = {
             databaseURL: "https://veinty2-2df4e-default-rtdb.firebaseio.com/"
@@ -30,14 +30,14 @@
         const database = firebase.database();
     </script>
 
-    <!-- Header -->
+    <!-- Header Principal -->
     <header class="bg-blue-900 text-white py-5 px-6 md:px-10 shadow-md no-print w-full flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
             <h1 class="text-2xl font-black tracking-wide flex items-center gap-2">
                 VEINTY2 
                 <span class="text-xs font-normal text-blue-200">SERVICIO DE IMPRESIÓN 3D</span>
             </h1>
-            <p class="text-xs text-blue-300 mt-0.5">Gestión de Precios & Cotizaciones • Panel de Control Local</p>
+            <p class="text-xs text-blue-300 mt-0.5">Gestión de Precios & Cotizaciones • Panel de Control</p>
         </div>
         <div class="flex gap-3">
             <button onclick="switchTab('catalog')" id="tab-catalog-btn" class="px-5 py-2.5 bg-white text-blue-900 font-bold text-sm rounded-xl shadow transition">📦 Catálogo</button>
@@ -45,32 +45,46 @@
         </div>
     </header>
 
+    <!-- Modal para Agrandar Imagen -->
+    <div id="image-modal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center hidden p-4 no-print" onclick="closeImageModal()">
+        <div class="relative max-w-3xl max-h-[90vh] bg-white p-2 rounded-2xl shadow-2xl" onclick="event.stopPropagation()">
+            <button onclick="closeImageModal()" class="absolute -top-3 -right-3 bg-rose-600 text-white rounded-full w-8 h-8 font-bold text-sm shadow-lg flex items-center justify-center z-10">✕</button>
+            <img id="modal-img-src" src="" class="max-w-full max-h-[80vh] rounded-xl object-contain">
+        </div>
+    </div>
+
+    <!-- Contenido Principal -->
     <main class="max-w-7xl mx-auto p-4 md:p-8 space-y-6">
 
-        <!-- SECCIÓN 1: CATÁLOGO -->
+        <!-- SECCIÓN 1: CATÁLOGO DE PRODUCTOS -->
         <section id="section-catalog" class="no-print space-y-6">
             
             <!-- Buscador y Ajuste Masivo -->
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                
+                <!-- Buscador -->
                 <div class="lg:col-span-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-center">
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">🔍 BUSCAR PRODUCTO</label>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">🔍 BUSCAR EN CATÁLOGO</label>
                     <input type="text" id="search-input" oninput="renderProducts()" placeholder="Buscar por nombre o características..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
                 </div>
 
+                <!-- Ajuste Masivo -->
                 <div class="lg:col-span-8 bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div>
-                        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">📈 Ajuste Masivo de Precios</h3>
-                        <p class="text-xs text-slate-400 mt-0.5">Aumenta o reduce precios de todos los productos.</p>
+                    <div class="w-full sm:w-auto">
+                        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">📈 Ajuste Masivo de Precios</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Aumenta o reduce precios globalmente de forma segura.</p>
                     </div>
-                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                    
+                    <div class="flex items-center gap-3 w-full sm:w-auto justify-start sm:justify-end">
                         <input type="number" id="global-percent" placeholder="%" class="w-20 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-center font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <button onclick="applyBulkPriceAdjustment(true)" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-3 rounded-xl shadow transition whitespace-nowrap">+ Aumentar %</button>
-                        <button onclick="applyBulkPriceAdjustment(false)" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-4 py-3 rounded-xl shadow transition whitespace-nowrap">- Descontar %</button>
+                        <button onclick="applyBulkPriceAdjustment(true)" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-3 rounded-xl shadow transition whitespace-nowrap">+ Aumentar %</button>
+                        <button onclick="applyBulkPriceAdjustment(false)" class="flex-1 sm:flex-none bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-4 py-3 rounded-xl shadow transition whitespace-nowrap">- Descontar %</button>
                     </div>
                 </div>
+
             </div>
 
-            <!-- Formulario Carga / Edición -->
+            <!-- Formulario Agregar / Editar Producto -->
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
                 <div class="flex justify-between items-center pb-2 border-b border-slate-100">
                     <h3 class="text-xs font-extrabold text-blue-900 uppercase tracking-wider" id="form-title">+ AGREGAR NUEVO PRODUCTO 3D</h3>
@@ -101,8 +115,8 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center pt-2">
                         <div class="md:col-span-8">
-                            <label class="block text-xs font-bold text-slate-500 mb-1">Imagen del Producto</label>
-                            <input type="file" id="prod-image" accept="image/*" onchange="previewImage(event)" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition cursor-pointer">
+                            <label class="block text-xs font-bold text-slate-500 mb-1">Imagen del Producto (Opcional)</label>
+                            <input type="file" id="prod-image" accept="image/*" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition cursor-pointer">
                         </div>
                         <div class="md:col-span-4">
                             <button type="submit" class="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-xl shadow-md transition text-sm flex items-center justify-center gap-2">
@@ -119,7 +133,7 @@
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="bg-slate-900 text-slate-300 uppercase text-[11px] font-bold tracking-wider border-b border-slate-800">
-                                <th class="py-4 px-6">Foto</th>
+                                <th class="py-4 px-6">Foto (Clic p/ Agrandar)</th>
                                 <th class="py-4 px-6">Producto</th>
                                 <th class="py-4 px-6">Características</th>
                                 <th class="py-4 px-6 text-right">Costo ($)</th>
@@ -136,18 +150,28 @@
             </div>
         </section>
 
-        <!-- SECCIÓN 2: PRESUPUESTADOR -->
+        <!-- SECCIÓN 2: PRESUPUESTADOR / BOLETA -->
         <section id="section-quote" class="hidden">
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 
-                <!-- Panel Lateral -->
+                <!-- Panel de Configuración -->
                 <div class="lg:col-span-4 space-y-6 no-print">
                     
+                    <!-- Personalización Boleta -->
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-                        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">🧠 DATOS DE LA BOLETA</h3>
+                        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">🧠 PERSONALIZACIÓN DE LA BOLETA</h3>
+                        
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Cargar Logo Emisor (Tu Marca)</label>
+                            <input type="file" accept="image/*" onchange="uploadEmisorLogo(event)" class="w-full text-xs text-slate-500 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-slate-100">
+                        </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-500 mb-1">Nombre / Empresa Cliente</label>
                             <input type="text" id="client-name-input" oninput="updateInvoiceClient()" placeholder="Ej. Rubio Muebles" class="w-full p-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Cargar Logo del Cliente (Opcional)</label>
+                            <input type="file" accept="image/*" onchange="uploadClientLogo(event)" class="w-full text-xs text-slate-500 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-slate-100">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-500 mb-1">Validez de la oferta (días)</label>
@@ -155,28 +179,33 @@
                         </div>
                     </div>
 
-                    <!-- Panel Agregar Productos a Cotización -->
+                    <!-- Agregar Productos a la Boleta -->
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-                        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">🛒 AGREGAR PRODUCTOS</h3>
+                        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">🛒 AGREGAR PRODUCTOS</h3>
                         
                         <div class="flex bg-slate-100 p-1 rounded-xl text-xs font-bold">
                             <button onclick="setQuoteMode('catalog')" id="mode-catalog-btn" class="flex-1 py-2 rounded-lg bg-white shadow-sm text-slate-800">Del Catálogo</button>
                             <button onclick="setQuoteMode('custom')" id="mode-custom-btn" class="flex-1 py-2 rounded-lg text-slate-500">Especial / Personalizado</button>
                         </div>
 
-                        <!-- Modo Catálogo con Buscador -->
-                        <div id="quote-catalog-fields" class="space-y-3">
-                            <label class="block text-xs font-semibold text-slate-500">Buscar Producto en Catálogo</label>
-                            <input type="text" id="quote-search-input" oninput="filterQuoteCatalog()" placeholder="Escribe para buscar..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <!-- Buscador Interactivo con Miniaturas para el Catálogo -->
+                        <div id="quote-catalog-fields" class="space-y-3 relative">
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Buscar Producto en Catálogo</label>
+                            <input type="text" id="quote-search-input" oninput="filterQuoteProducts()" placeholder="🔍 Escribe para buscar por foto o nombre..." class="w-full p-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                             
-                            <!-- Lista con fotos para seleccionar -->
-                            <div id="quote-catalog-list" class="max-h-48 overflow-y-auto space-y-2 border border-slate-100 p-2 rounded-xl bg-slate-50/50">
-                                <!-- Opciones dinámicas -->
+                            <input type="hidden" id="selected-catalog-id">
+                            <div id="selected-product-badge" class="hidden p-2.5 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between text-xs">
+                                <span id="selected-product-text" class="font-bold text-blue-900"></span>
+                                <button onclick="clearSelectedProduct()" class="text-rose-600 font-bold ml-2">✕</button>
                             </div>
-                            <input type="hidden" id="selected-quote-prod-id">
+
+                            <!-- Resultados de la búsqueda con foto -->
+                            <div id="quote-search-results" class="hidden absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-56 overflow-y-auto z-30 divide-y divide-slate-100">
+                                <!-- Se llena dinámicamente -->
+                            </div>
                         </div>
 
-                        <!-- Modo Especial -->
+                        <!-- Campos para Producto Especial -->
                         <div id="quote-custom-fields" class="space-y-3 hidden">
                             <div>
                                 <label class="block text-xs font-semibold text-slate-500 mb-1">Descripción Especial</label>
@@ -207,15 +236,21 @@
                     </button>
                 </div>
 
-                <!-- VISTA PREVIA BOLETA -->
+                <!-- VISTA PREVIA BOLETA/PRESUPUESTO -->
                 <div class="lg:col-span-8">
                     <div id="invoice-container" class="bg-white p-8 md:p-12 rounded-2xl shadow-sm border border-slate-200 print-container max-w-4xl mx-auto text-slate-800">
                         
+                        <!-- Header Boleta -->
                         <div class="flex justify-between items-start pb-6 border-b-2 border-slate-900 mb-6">
-                            <div>
-                                <h1 class="text-3xl font-black text-blue-900 tracking-tight">VEINTY2</h1>
-                                <p class="text-xs font-bold text-blue-600 tracking-wider uppercase mt-0.5">SERVICIO DE IMPRESIÓN 3D</p>
-                                <p class="text-xs italic text-slate-500 mt-1">“Una idea tuya, ahora en tus manos” — VEINTY2</p>
+                            <div class="flex items-center gap-4">
+                                <div id="emisor-logo-box" class="hidden">
+                                    <img id="img-emisor-logo" src="" class="h-16 object-contain">
+                                </div>
+                                <div>
+                                    <h1 class="text-3xl font-black text-blue-900 tracking-tight">VEINTY2</h1>
+                                    <p class="text-xs font-bold text-blue-600 tracking-wider uppercase mt-0.5">SERVICIO DE IMPRESIÓN 3D</p>
+                                    <p class="text-xs italic text-slate-500 mt-1">“Una idea tuya, ahora en tus manos” — VEINTY2</p>
+                                </div>
                             </div>
                             
                             <div class="text-right">
@@ -225,16 +260,21 @@
                             </div>
                         </div>
 
-                        <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200 mb-6">
-                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">CLIENTE / DIRIGIDO A</p>
-                            <p id="invoice-client-name" class="text-lg font-bold text-slate-800 mt-0.5">Cliente General</p>
+                        <!-- Cliente -->
+                        <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200 mb-6 flex justify-between items-center">
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">CLIENTE / DIRIGIDO A</p>
+                                <p id="invoice-client-name" class="text-lg font-bold text-slate-800 mt-0.5">Cliente General</p>
+                            </div>
+                            <div id="client-logo-box" class="hidden">
+                                <img id="img-client-logo" src="" class="h-12 object-contain">
+                            </div>
                         </div>
 
-                        <!-- Tabla Presupuesto con Foto del Producto -->
+                        <!-- Tabla Presupuesto -->
                         <table class="w-full text-left mb-8">
                             <thead>
                                 <tr class="border-b border-slate-200 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                                    <th class="pb-3 w-12">FOTO</th>
                                     <th class="pb-3">DESCRIPCIÓN</th>
                                     <th class="pb-3 text-center">CANT.</th>
                                     <th class="pb-3 text-right">PRECIO UNIT.</th>
@@ -247,6 +287,7 @@
                             </tbody>
                         </table>
 
+                        <!-- Total -->
                         <div class="border-t-2 border-slate-900 pt-4 flex justify-end items-center mb-12">
                             <div class="text-right">
                                 <span class="text-xl font-bold text-slate-800 mr-4">TOTAL:</span>
@@ -254,6 +295,7 @@
                             </div>
                         </div>
 
+                        <!-- Pie de página -->
                         <div class="border-t border-slate-200 pt-5 mt-8 flex justify-between items-end text-[11px] text-slate-600">
                             <div class="space-y-1">
                                 <p class="font-bold text-slate-800 text-xs">VEINTY2 3D</p>
@@ -273,24 +315,16 @@
         </section>
     </main>
 
-    <!-- Modal para Agrandar Fotos -->
-    <div id="image-modal" onclick="closeImageModal()" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4 cursor-pointer no-print">
-        <div class="relative max-w-3xl max-h-[90vh]">
-            <img id="modal-img-src" src="" class="max-w-full max-h-[85vh] rounded-2xl shadow-2xl object-contain">
-            <p class="text-center text-white text-xs mt-3 font-semibold">Haz clic en cualquier lugar para cerrar</p>
-        </div>
-    </div>
-
-    <!-- JS -->
+    <!-- JS Y LÓGICA COMPLETA CORREGIDA -->
     <script>
         let products = [];
         let quoteItems = [];
-        let currentImageBase64 = "";
+        let editingImageBase64 = "";
         let quoteMode = 'catalog';
 
         document.getElementById('quote-date').innerText = new Date().toLocaleDateString('es-AR');
 
-        // Escuchar Firebase
+        // Escuchar Firebase en tiempo real
         database.ref('products').on('value', (snapshot) => {
             const data = snapshot.val();
             products = [];
@@ -300,7 +334,6 @@
                 });
             }
             renderProducts();
-            filterQuoteCatalog();
         });
 
         function switchTab(tab) {
@@ -310,15 +343,7 @@
             document.getElementById('tab-quote-btn').className = tab === 'quote' ? 'px-5 py-2.5 bg-white text-blue-900 font-bold text-sm rounded-xl shadow transition' : 'px-5 py-2.5 bg-blue-800 text-white font-bold text-sm rounded-xl hover:bg-blue-700 transition';
         }
 
-        function previewImage(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => currentImageBase64 = event.target.result;
-                reader.readAsDataURL(file);
-            }
-        }
-
+        // Modal para Agrandar Imagen
         function openImageModal(src) {
             if (!src) return;
             document.getElementById('modal-img-src').src = src;
@@ -327,37 +352,77 @@
 
         function closeImageModal() {
             document.getElementById('image-modal').classList.add('hidden');
+            document.getElementById('modal-img-src').src = '';
         }
 
-        function handleProductSubmit(e) {
+        function uploadEmisorLogo(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    document.getElementById('img-emisor-logo').src = event.target.result;
+                    document.getElementById('emisor-logo-box').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function uploadClientLogo(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    document.getElementById('img-client-logo').src = event.target.result;
+                    document.getElementById('client-logo-box').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Función para procesar y guardar productos en Firebase (Solución a "No me deja guardar productos")
+        async function handleProductSubmit(e) {
             e.preventDefault();
             const id = document.getElementById('prod-id').value;
-            const name = document.getElementById('prod-name').value;
-            const details = document.getElementById('prod-details').value;
+            const name = document.getElementById('prod-name').value.trim();
+            const details = document.getElementById('prod-details').value.trim();
             const cost = parseFloat(document.getElementById('prod-cost').value) || 0;
             const price = parseFloat(document.getElementById('prod-price').value) || 0;
+            const fileInput = document.getElementById('prod-image');
 
-            const productData = { name, details, cost, price };
-            if (currentImageBase64) {
-                productData.image = currentImageBase64;
+            let imageBase64 = editingImageBase64;
+
+            if (fileInput.files && fileInput.files[0]) {
+                imageBase64 = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (event) => resolve(event.target.result);
+                    reader.readAsDataURL(fileInput.files[0]);
+                });
             }
+
+            const productData = { name, details, cost, price, image: imageBase64 };
 
             if (id) {
-                database.ref('products/' + id).update(productData);
+                database.ref('products/' + id).update(productData, (error) => {
+                    if (error) alert("Error al actualizar: " + error.message);
+                    else resetForm();
+                });
             } else {
-                database.ref('products').push(productData);
+                database.ref('products').push(productData, (error) => {
+                    if (error) alert("Error al guardar: " + error.message);
+                    else resetForm();
+                });
             }
-            resetForm();
         }
 
         function resetForm() {
             document.getElementById('product-form').reset();
             document.getElementById('prod-id').value = '';
-            currentImageBase64 = "";
+            editingImageBase64 = "";
             document.getElementById('form-title').innerText = '+ AGREGAR NUEVO PRODUCTO 3D';
             document.getElementById('cancel-edit-btn').classList.add('hidden');
         }
 
+        // Edición de productos corregida
         function editProduct(id) {
             const p = products.find(prod => prod.id === id);
             if (p) {
@@ -366,7 +431,7 @@
                 document.getElementById('prod-details').value = p.details || '';
                 document.getElementById('prod-cost').value = p.cost || 0;
                 document.getElementById('prod-price').value = p.price || 0;
-                currentImageBase64 = p.image || '';
+                editingImageBase64 = p.image || '';
                 document.getElementById('form-title').innerText = '✏️ EDITAR PRODUCTO';
                 document.getElementById('cancel-edit-btn').classList.remove('hidden');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -379,23 +444,29 @@
             }
         }
 
+        // Ajuste Masivo de Precios Corregido (No borra productos)
         function applyBulkPriceAdjustment(isIncrease) {
-            const percentInput = document.getElementById('global-percent').value;
-            const percent = parseFloat(percentInput);
-
-            if (isNaN(percent) || percent <= 0) {
-                return alert('Por favor ingresa un porcentaje válido mayor a 0');
-            }
+            const percent = parseFloat(document.getElementById('global-percent').value);
+            if (isNaN(percent) || percent <= 0) return alert('Ingresa un porcentaje válido');
 
             const factor = isIncrease ? (1 + percent / 100) : (1 - percent / 100);
 
+            let updates = {};
             products.forEach(p => {
-                if (p.id && typeof p.price === 'number') {
+                if (p.id && !isNaN(p.price)) {
                     const newPrice = Math.round(p.price * factor);
-                    database.ref('products/' + p.id).update({ price: newPrice });
+                    updates['products/' + p.id + '/price'] = newPrice;
                 }
             });
-            document.getElementById('global-percent').value = '';
+
+            database.ref().update(updates, (error) => {
+                if (error) {
+                    alert('Ocurrió un error al actualizar los precios: ' + error.message);
+                } else {
+                    alert('Precios actualizados correctamente');
+                    document.getElementById('global-percent').value = '';
+                }
+            });
         }
 
         function renderProducts() {
@@ -403,20 +474,19 @@
             const tbody = document.getElementById('products-table-body');
             tbody.innerHTML = '';
 
-            const filtered = products.filter(p => p.name.toLowerCase().includes(query) || (p.details && p.details.toLowerCase().includes(query)));
+            const filtered = products.filter(p => (p.name && p.name.toLowerCase().includes(query)) || (p.details && p.details.toLowerCase().includes(query)));
 
             filtered.forEach(p => {
                 const cost = p.cost || 0;
                 const price = p.price || 0;
                 const margin = cost > 0 ? (((price - cost) / cost) * 100).toFixed(1) : '100.0';
-                
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50/80 transition border-b border-slate-100';
                 tr.innerHTML = `
                     <td class="py-3 px-6">
-                        ${p.image ? `<img src="${p.image}" onclick="openImageModal('${p.image}')" class="w-12 h-12 object-cover rounded-xl shadow-sm cursor-pointer hover:scale-105 transition">` : `<div class="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-[10px] text-slate-400 font-semibold">Sin foto</div>`}
+                        ${p.image ? `<img src="${p.image}" onclick="openImageModal('${p.image}')" class="w-12 h-12 object-cover rounded-xl shadow-sm cursor-pointer hover:opacity-80 transition" title="Clic para agrandar">` : `<div class="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-[10px] text-slate-400 font-semibold">Sin foto</div>`}
                     </td>
-                    <td class="py-3 px-6 font-bold text-slate-800">${p.name}</td>
+                    <td class="py-3 px-6 font-bold text-slate-800">${p.name || 'Sin nombre'}</td>
                     <td class="py-3 px-6 text-slate-500 text-xs">${p.details || '-'}</td>
                     <td class="py-3 px-6 text-right text-slate-600 font-medium">$ ${cost.toFixed(0)}</td>
                     <td class="py-3 px-6 text-right font-bold text-blue-900">$ ${price.toFixed(0)}</td>
@@ -440,68 +510,84 @@
             document.getElementById('mode-custom-btn').className = mode === 'custom' ? 'flex-1 py-2 rounded-lg bg-white shadow-sm text-slate-800' : 'flex-1 py-2 rounded-lg text-slate-500';
         }
 
-        function filterQuoteCatalog() {
-            const query = (document.getElementById('quote-search-input').value || '').toLowerCase();
-            const container = document.getElementById('quote-catalog-list');
-            container.innerHTML = '';
+        // Buscador Visual de Productos para la Boleta (Guía interna con foto)
+        function filterQuoteProducts() {
+            const query = document.getElementById('quote-search-input').value.toLowerCase().trim();
+            const resultsBox = document.getElementById('quote-search-results');
+            resultsBox.innerHTML = '';
 
-            const filtered = products.filter(p => p.name.toLowerCase().includes(query));
-
-            if (filtered.length === 0) {
-                container.innerHTML = '<p class="text-xs text-slate-400 text-center py-2">Sin coincidencias</p>';
+            if (query === '') {
+                resultsBox.classList.add('hidden');
                 return;
             }
 
-            filtered.forEach(p => {
-                const item = document.createElement('div');
-                item.className = 'flex items-center justify-between p-2 hover:bg-white rounded-lg cursor-pointer transition border border-transparent hover:border-slate-200';
-                item.onclick = () => selectQuoteProduct(p.id, p.name);
-                item.innerHTML = `
-                    <div class="flex items-center gap-2">
-                        ${p.image ? `<img src="${p.image}" class="w-8 h-8 object-cover rounded-lg">` : `<div class="w-8 h-8 bg-slate-200 rounded-lg text-[9px] flex items-center justify-center text-slate-500">3D</div>`}
-                        <span class="text-xs font-bold text-slate-700">${p.name}</span>
-                    </div>
-                    <span class="text-xs font-extrabold text-blue-900">$${(p.price || 0).toFixed(0)}</span>
-                `;
-                container.appendChild(item);
-            });
+            const filtered = products.filter(p => p.name && p.name.toLowerCase().includes(query));
+
+            if (filtered.length === 0) {
+                resultsBox.innerHTML = '<div class="p-3 text-xs text-slate-400 font-medium text-center">Sin resultados</div>';
+            } else {
+                filtered.forEach(p => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'p-2.5 hover:bg-slate-50 cursor-pointer flex items-center justify-between transition';
+                    itemDiv.onclick = () => selectProductForQuote(p);
+                    itemDiv.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            ${p.image ? `<img src="${p.image}" class="w-10 h-10 object-cover rounded-lg">` : `<div class="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-[9px] text-slate-400">Sin foto</div>`}
+                            <div>
+                                <p class="text-xs font-bold text-slate-800">${p.name}</p>
+                                <p class="text-[10px] text-slate-400">${p.details || ''}</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-blue-900">$${(p.price || 0).toFixed(0)}</span>
+                    `;
+                    resultsBox.appendChild(itemDiv);
+                });
+            }
+            resultsBox.classList.remove('hidden');
         }
 
-        function selectQuoteProduct(id, name) {
-            document.getElementById('selected-quote-prod-id').value = id;
-            document.getElementById('quote-search-input').value = name;
+        function selectProductForQuote(product) {
+            document.getElementById('selected-catalog-id').value = product.id;
+            document.getElementById('selected-product-text').innerText = `${product.name} - $${(product.price || 0).toFixed(0)}`;
+            document.getElementById('selected-product-badge').classList.remove('hidden');
+            document.getElementById('quote-search-results').classList.add('hidden');
+            document.getElementById('quote-search-input').value = '';
+        }
+
+        function clearSelectedProduct() {
+            document.getElementById('selected-catalog-id').value = '';
+            document.getElementById('selected-product-badge').classList.add('hidden');
         }
 
         function addItemToQuote() {
             const qty = parseInt(document.getElementById('quote-qty').value) || 1;
             const discount = parseFloat(document.getElementById('quote-discount').value) || 0;
-            let name = "", unitPrice = 0, image = "";
+            let name = "", unitPrice = 0;
 
             if (quoteMode === 'catalog') {
-                const id = document.getElementById('selected-quote-prod-id').value;
+                const id = document.getElementById('selected-catalog-id').value;
                 const p = products.find(item => item.id === id);
-                if (!p) return alert('Selecciona un producto del catálogo');
+                if (!p) return alert('Selecciona un producto del buscador visual de catálogo');
                 name = p.name;
                 unitPrice = p.price || 0;
-                image = p.image || "";
             } else {
-                name = document.getElementById('quote-custom-name').value;
+                name = document.getElementById('quote-custom-name').value.trim();
                 unitPrice = parseFloat(document.getElementById('quote-custom-price').value) || 0;
-                if (!name || unitPrice <= 0) return alert('Ingresa nombre y precio válidos');
+                if (!name || unitPrice <= 0) return alert('Ingresa un nombre y precio válido');
             }
 
             const finalPrice = unitPrice * (1 - discount / 100);
             const subtotal = finalPrice * qty;
 
-            quoteItems.push({ name, qty, unitPrice: finalPrice, subtotal, image });
+            quoteItems.push({ name, qty, unitPrice: finalPrice, subtotal });
             renderQuoteItems();
 
-            // Limpiar buscador/campos
-            document.getElementById('selected-quote-prod-id').value = '';
-            document.getElementById('quote-search-input').value = '';
-            document.getElementById('quote-custom-name').value = '';
-            document.getElementById('quote-custom-price').value = '';
-            filterQuoteCatalog();
+            if (quoteMode === 'custom') {
+                document.getElementById('quote-custom-name').value = '';
+                document.getElementById('quote-custom-price').value = '';
+            } else {
+                clearSelectedProduct();
+            }
         }
 
         function removeQuoteItem(index) {
@@ -518,11 +604,8 @@
                 total += item.subtotal;
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td class="py-3">
-                        ${item.image ? `<img src="${item.image}" class="w-8 h-8 object-cover rounded-lg">` : `<div class="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-[9px] text-slate-400">3D</div>`}
-                    </td>
                     <td class="py-3 font-semibold text-slate-800">${item.name}</td>
-                    <td class="py-3 text-center font-bold">${item.qty}</td>
+                    <td class="py-3 text-center">${item.qty}</td>
                     <td class="py-3 text-right">$${item.unitPrice.toFixed(2)}</td>
                     <td class="py-3 text-right font-bold text-blue-900">$${item.subtotal.toFixed(2)}</td>
                     <td class="py-3 text-right no-print">
@@ -537,12 +620,12 @@
 
         function updateInvoiceClient() {
             const name = document.getElementById('client-name-input').value;
-            document.getElementById('invoice-client-name').innerText = name || 'Cliente General';
+            document.getElementById('invoice-client-name').innerText = name.trim() !== '' ? name : 'Cliente General';
         }
 
         function updateInvoiceValidity() {
-            const val = document.getElementById('validity-input').value;
-            document.getElementById('invoice-validity').innerText = (val || '15') + ' días';
+            const days = document.getElementById('validity-input').value || 15;
+            document.getElementById('invoice-validity').innerText = `${days} días`;
         }
     </script>
 </body>
