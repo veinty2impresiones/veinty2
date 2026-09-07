@@ -6,6 +6,25 @@
     <title>VEINTY2 - Gestión de Precios e Impresión 3D</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+   <!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyD_7oGZUSSu02C3lTQuIab80V4Eh6CSM8w",
+    authDomain: "veinty2-2df4e.firebaseapp.com",
+    databaseURL: "https://veinty2-2df4e-default-rtdb.firebaseio.com",
+    projectId: "veinty2-2df4e",
+    storageBucket: "veinty2-2df4e.firebasestorage.app",
+    messagingSenderId: "856624401509",
+    appId: "1:856624401509:web:514fda6f550f0842ef8a8c",
+    measurementId: "G-ZCFC77CWLW"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const database = firebase.database();
+</script>
     <style>
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
